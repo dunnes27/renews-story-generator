@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>reNEWS Story Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-purple-800 min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-2xl shadow-2xl p-8 mb-6">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">reNEWS Story Generator</h1>
+            <p class="text-gray-600 text-lg">Convert press releases into professional news stories</p>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Input Panel -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 flex flex-col space-y-4">
+                <h2 class="text-2xl font-bold text-gray-900 pb-3 border-b-2">Input</h2>
+                
+                <!-- Info Box -->
+                <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                    <p class="text-sm text-blue-900">
+                        <strong>Get your API key:</strong> 
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" class="underline hover:text-blue-700">console.anthropic.com/settings/keys</a>
+                    </p>
+                </div>
+
+                <!-- API Key Input -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Anthropic API Key</label>
+                    <div class="flex gap-2">
+                        <input
+                            type="password"
+                            id="apiKey"
+                            placeholder="sk-ant-..."
+                            class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition"
+                        />
+                        <button
+                            onclick="saveApiKey()"
+                            class="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 active:scale-95 transition"
+                        >
+                            Save
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Press Release Input -->
+                <div class="flex-1 flex flex-col">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Press Release</label>
+                    <textarea
+                        id="pressRelease"
+                        placeholder="Paste your press release here..."
+                        class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg font-mono text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition resize-none min-h-[250px]"
+                    ></textarea>
+                </div>
+
+                <!-- Special Instructions -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Special Instructions (optional)</label>
+                    <textarea
+                        id="specialInstructions"
+                        placeholder='e.g., "Lead on investment figure"'
+                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition resize-none"
+                        rows="2"
+                    ></textarea>
+                </div>
+
+                <!-- Generate Button -->
+                <button
+                    id="generateBtn"
+                    onclick="generateStory()"
+                    class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-bold text-lg shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 transition-all"
+                >
+                    ✨ Generate Story
+                </button>
+
+                <!-- Status Message -->
+                <div id="status" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+            </div>
+
+            <!-- Output Panel -->
+            <div class="bg-white rounded-2xl shadow-xl p-6 flex flex-col">
+                <h2 class="text-2xl font-bold text-gray-900 pb-3 border-b-2 mb-4">Output</h2>
+                
+                <div id="output" class="flex-1 bg-gray-50 rounded-lg p-5 font-mono text-sm leading-relaxed whitespace-pre-wrap overflow-y-auto min-h-[500px] border-2 border-gray-200">
+                    <span class="text-gray-400 italic">Your generated story will appear here...</span>
+                </div>
+
+                <button
+                    id="copyBtn"
+                    onclick="copyOutput()"
+                    class="mt-4 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 active:scale-95 transition shadow-md hover:shadow-lg hidden"
+                >
+                    📋 Copy Story
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load API key from localStorage on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('anthropic_api_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+                showStatus('API key loaded from storage', 'success');
+            }
+        });
+
+        function saveApiKey() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                showStatus('Please enter an API key', 'error');
+                return;
+            }
+            if (!apiKey.startsWith('sk-ant-')) {
+                showStatus('Invalid API key format. Should start with sk-ant-', 'error');
+                return;
+            }
+            localStorage.setItem('anthropic_api_key', apiKey);
+            showStatus('API key saved successfully!', 'success');
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `p-4 rounded-lg text-sm font-medium ${
+                type === 'error' ? 'bg-red-50 text-red-800 border-l-4 border-red-500' :
+                type === 'success' ? 'bg-green-50 text-green-800 border-l-4 border-green-500' :
+                'bg-blue-50 text-blue-800 border-l-4 border-blue-500'
+            }`;
+            statusEl.classList.remove('hidden');
+            
+            if (type === 'success') {
+                setTimeout(() => statusEl.classList.add('hidden'), 3000);
+            }
+        }
+
+        async function generateStory() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const pressRelease = document.getElementById('pressRelease').value.trim();
+            const specialInstructions = document.getElementById('specialInstructions').value.trim();
+            const outputEl = document.getElementById('output');
+            const generateBtn = document.getElementById('generateBtn');
+            const copyBtn = document.getElementById('copyBtn');
+
+            // Validation
+            if (!apiKey) {
+                showStatus('Please enter your Anthropic API key', 'error');
+                return;
+            }
+            if (!pressRelease) {
+                showStatus('Please paste a press release', 'error');
+                return;
+            }
+
+            // Show loading state
+            generateBtn.disabled = true;
+            generateBtn.textContent = '⏳ Generating...';
+            copyBtn.classList.add('hidden');
+            outputEl.innerHTML = '<div class="flex items-center gap-3 text-purple-600"><div class="w-6 h-6 border-4 border-gray-300 border-t-purple-600 rounded-full spinner"></div><span class="font-bold">Generating story...</span></div>';
+            showStatus('Generating story...', 'info');
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey,
+                        pressRelease,
+                        specialInstructions
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to generate story');
+                }
+
+                outputEl.innerHTML = `<div class="text-gray-900">${data.story}</div>`;
+                copyBtn.classList.remove('hidden');
+                showStatus('Story generated successfully!', 'success');
+
+            } catch (error) {
+                outputEl.innerHTML = `<div class="text-red-600">Error: ${error.message}</div>`;
+                showStatus(`Error: ${error.message}`, 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '✨ Generate Story';
+            }
+        }
+
+        function copyOutput() {
+            const output = document.getElementById('output').textContent;
+            navigator.clipboard.writeText(output).then(() => {
+                showStatus('Story copied to clipboard!', 'success');
+            }).catch(() => {
+                showStatus('Failed to copy. Please select and copy manually.', 'error');
+            });
+        }
+
+        // Allow Ctrl+Enter to submit
+        document.getElementById('pressRelease').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                generateStory();
+            }
+        });
+    </script>
+</body>
+</html>
